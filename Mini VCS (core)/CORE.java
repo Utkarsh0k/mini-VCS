@@ -62,7 +62,6 @@ class Repository {
         String branch = null;
         try {
             branch = new String(java.nio.file.Files.readAllBytes(headFile.toPath())).trim();
-            System.out.println("Branch = " + branch);
         } catch (IOException e) {
             System.err.println(e);
             return;
@@ -82,7 +81,6 @@ class Repository {
         long currenttime = System.currentTimeMillis();
 
         String CommitContent = "parent:" + parentid + "\nauthor:Utkarsh\ndate:" + currenttime + "\nmessage:" + Message;
-        System.out.println(CommitContent);
         String CommitID = null;
         try {
             CommitID = HashUtil.getHex(HashUtil.getSHA(CommitContent));
@@ -230,14 +228,49 @@ class Repository {
     }
 }
 
-public class CORE {
+public class core {
 
     public static void main(String[] args) {
-        Repository rep = new Repository();
-        rep.init();
-        rep.commit("testing The checkout");
-        rep.branch("dev");
-        rep.checkout("dev");
+        Repository core = new Repository();
+        if (args.length == 0) {
+            System.out.println("No Command yet");
+            return;
+        }
+        String command = args[0];
+        switch (command) {
+            case "init":
+                core.init();
+                break;
+            case "commit":
+                if (args.length < 2) {
+                    System.out.println("Commit message required");
+                    return;
+                }
+                core.commit(args[1]);
+                break;
+            case "branch":
+                core.branch(args[1]);
+                break;
+            case "log":
+                core.log();
+                break;
+            case "checkout":
+                core.checkout(args[1]);
+                break;
+            case "help":
+                System.out.println("Usable Commands:");
+                System.out.println(
+                        "init : initializes repository\n"
+                        + "commit : Create new Commit\n"
+                        + "log : show commit history\n"
+                        + "branch : create new branch\n"
+                        + "checkout : Switch Branch"
+                );
+                break;
+            default:
+                System.out.println("Unknown Command");
+
+        }
     }
 
 }
