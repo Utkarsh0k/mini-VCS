@@ -205,14 +205,39 @@ class Repository {
             System.out.println(Branch_name + " already exists");
         }
     }
+
+    public void checkout(String Branch_name) {
+        if (Branch_name == null || Branch_name.trim().isEmpty()) {
+            System.out.println("Invalid branch name");
+            return;
+        }
+        if (!repoRoot.exists()) {
+            System.out.println("No Core exists");
+            return;
+        }
+        File branch = new File(refdirec, Branch_name);
+        if (!branch.exists()) {
+            System.out.println(branch + " does not exist");
+            return;
+        }
+        File head = new File(repoRoot, "HEAD");
+        try (FileWriter fw = new FileWriter(head.getAbsolutePath())) {
+            fw.write(Branch_name);
+        } catch (IOException e) {
+            System.err.println(e);
+        }
+
+    }
 }
 
 public class CORE {
 
     public static void main(String[] args) {
         Repository rep = new Repository();
-
+        rep.init();
+        rep.commit("testing The checkout");
         rep.branch("dev");
+        rep.checkout("dev");
     }
 
 }
