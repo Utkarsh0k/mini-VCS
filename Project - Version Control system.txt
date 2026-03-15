@@ -1,0 +1,98 @@
+# Core – Mini Version Control System
+
+Core is a minimal version control system written in Java, built as a learning project to understand how tools like Git work internally. The project focuses on the fundamental architecture of version control systems, including commit storage, content-based hashing, branch pointers, and commit history traversal.
+
+The repository is stored inside a hidden `.core` directory created in the working directory.
+
+## Repository Structure
+
+```
+.core/
+  objects/
+  refs/
+    main
+  HEAD
+```
+
+Each component has a specific role:
+
+* **objects/** – Stores commit objects. Each commit is saved as a file whose name is the SHA-256 hash of its content.
+* **refs/** – Stores branch pointers. Each branch file contains the hash of the latest commit in that branch.
+* **HEAD** – Stores the name of the currently active branch.
+
+This structure mirrors the core design used by Git where commits are immutable objects and branches act as movable pointers.
+
+## Commit Model
+
+Each commit contains structured metadata:
+
+```
+parent:<parentHash>
+author:<authorName>
+date:<timestamp>
+message:<commitMessage>
+```
+
+The commit content is hashed using SHA-256 to generate a unique commit identifier. The commit object is then stored inside `.core/objects/`.
+
+Commits form a parent-linked chain, allowing the system to reconstruct history by traversing parent references.
+
+Example commit chain:
+
+```
+C3 → C2 → C1 → null
+```
+
+## Implemented Commands
+
+The system currently supports the following commands:
+
+```
+java core init
+```
+
+Initializes a repository by creating the `.core` directory structure.
+
+```
+java core commit "<message>"
+```
+
+Creates a new commit object and updates the current branch pointer.
+
+```
+java core log
+```
+
+Traverses commit history from the latest commit to the first commit.
+
+```
+java core branch <branchName>
+```
+
+Creates a new branch pointer referencing the current commit.
+
+```
+java core checkout <branchName>
+```
+
+Switches the active branch by updating the `HEAD` reference.
+
+```
+java core help
+```
+
+Displays available commands.
+
+## Design Principles
+
+This project follows the same fundamental ideas used in modern version control systems:
+
+* Commits are immutable objects.
+* Commit identity is derived from content hashing.
+* Branches are lightweight pointers to commits.
+* `HEAD` determines the currently active branch.
+* History is reconstructed by traversing parent references.
+
+## Educational Goal
+
+The goal of this project is to understand the internal data model behind version control systems rather than replicate the full functionality of Git. The implementation demonstrates how commit graphs and branch references work at a low level using a simple file-based architecture.
