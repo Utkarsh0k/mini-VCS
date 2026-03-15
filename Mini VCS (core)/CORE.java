@@ -103,81 +103,116 @@ class Repository {
 
     void log() {
 
-    if (!repoRoot.exists()) {
-        return;
-    }
-
-    File headFile = new File(repoRoot, "HEAD");
-
-    String branch = null;
-    try {
-        branch = new String(java.nio.file.Files.readAllBytes(headFile.toPath())).trim();
-    } catch (IOException e) {
-        System.err.println(e);
-        return;
-    }
-
-    File branchFile = new File(refdirec, branch);
-
-    String currentCommit = null;
-    try {
-        currentCommit = new String(java.nio.file.Files.readAllBytes(branchFile.toPath())).trim();
-    } catch (IOException e) {
-        System.err.println(e);
-        return;
-    }
-
-    System.out.println("\nLog Chain\n");
-
-    while (currentCommit != null && !currentCommit.equals("null")) {
-
-        File commitFile = new File(objectDir, currentCommit);
-
-        if (!commitFile.exists()) {
-            System.out.println("Missing commit object: " + currentCommit);
+        if (!repoRoot.exists()) {
             return;
         }
 
-        System.out.println("commit " + currentCommit);
+        File headFile = new File(repoRoot, "HEAD");
 
-        String parentHash = "null";
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(commitFile))) {
-
-            String line;
-            boolean firstLine = true;
-
-            while ((line = reader.readLine()) != null) {
-
-                System.out.println(line);
-
-                if (firstLine) {
-                    int index = line.indexOf(':');
-                    parentHash = line.substring(index + 1);
-                    firstLine = false;
-                }
-            }
-
+        String branch = null;
+        try {
+            branch = new String(java.nio.file.Files.readAllBytes(headFile.toPath())).trim();
         } catch (IOException e) {
             System.err.println(e);
             return;
         }
 
-        System.out.println();
+        File branchFile = new File(refdirec, branch);
 
-        currentCommit = parentHash;
+        String currentCommit = null;
+        try {
+            currentCommit = new String(java.nio.file.Files.readAllBytes(branchFile.toPath())).trim();
+        } catch (IOException e) {
+            System.err.println(e);
+            return;
+        }
+
+        System.out.println("\nLog Chain\n");
+
+        while (currentCommit != null && !currentCommit.equals("null")) {
+
+            File commitFile = new File(objectDir, currentCommit);
+
+            if (!commitFile.exists()) {
+                System.out.println("Missing commit object: " + currentCommit);
+                return;
+            }
+
+            System.out.println("commit " + currentCommit);
+
+            String parentHash = "null";
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(commitFile))) {
+
+                String line;
+                boolean firstLine = true;
+
+                while ((line = reader.readLine()) != null) {
+
+                    System.out.println(line);
+
+                    if (firstLine) {
+                        int index = line.indexOf(':');
+                        parentHash = line.substring(index + 1);
+                        firstLine = false;
+                    }
+                }
+
+            } catch (IOException e) {
+                System.err.println(e);
+                return;
+            }
+
+            System.out.println();
+
+            currentCommit = parentHash;
+        }
+
     }
-}
 
+    public void branch(String Branch_name) {
+        if (Branch_name == null || Branch_name.trim().isEmpty()) {
+            System.out.println("Invalid branch name");
+            return;
+        }
+        if (!repoRoot.exists()) {
+            System.out.println("No Core Exist");
+            return;
+        }
+        File head = new File(repoRoot, "HEAD");
+        String currbranch = null;
+        try {
+            currbranch = new String(java.nio.file.Files.readAllBytes(head.toPath())).trim();
+        } catch (IOException e) {
+            System.err.println(e);
+        }
+        File m = new File(refdirec, currbranch);
+
+        String currH = null;
+        try {
+            currH = new String(java.nio.file.Files.readAllBytes(m.toPath())).trim();
+        } catch (IOException e) {
+            System.err.println(e);
+        }
+        if (currH.isEmpty()) {
+            System.out.println("No Commits yet");
+            return;
+        }
+        File check = new File(refdirec, Branch_name);
+        if (!check.exists()) {
+            FileCreateContent(refdirec.getAbsolutePath(), Branch_name, currH);
+        } else {
+            System.out.println(Branch_name + " already exists");
+        }
+    }
 }
 
 public class CORE {
 
     public static void main(String[] args) {
         Repository rep = new Repository();
-        rep.init();
-        rep.commit("Hello");
-        rep.log();
+
+        rep.branch("dev");
     }
 
 }
