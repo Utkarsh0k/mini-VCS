@@ -27,13 +27,14 @@ class Repository {
             repoRoot.mkdirs();
             objectDir.mkdirs();
             refdirec.mkdirs();
-
             FileCreateContent(repoRoot.getAbsolutePath(), "HEAD", "main");
             try {
                 mainFile.createNewFile();
             } catch (IOException e) {
                 System.out.println(e);
             }
+            System.out.println("\nInitialized empty Git repository in "+repoRoot.getAbsolutePath()+"\n");
+            
         }
     }
 
@@ -97,6 +98,7 @@ class Repository {
         } catch (IOException e) {
             System.err.println(e);
         }
+        System.out.println("["+branch+" "+CommitID.substring(0,6)+"]"+ " "+ Message);
     }
 
     void log() {
