@@ -370,13 +370,12 @@ public class core {
 
             case "help":
                 System.out.println("Usable Commands:");
-                System.out.println(
-                        "init : initializes repository\n" +
-                        "commit : Create new Commit\n" +
-                        "log : show commit history\n" +
-                        "branch : create new branch\n" +
-                        "checkout : Switch Branch"
-                );
+                System.out.println("""
+                                init : initializes repository
+                                commit : Create new Commit
+                                log : show commit history
+                                branch : create new branch
+                                checkout : Switch Branch""");
                 break;
 
             default:
