@@ -62,6 +62,14 @@ public class core {
                                         checkout : Switch Branch""");
                 break;
 
+            case "restore":
+                if (args.length < 2) {
+                    System.out.println("Commit ID required");
+                    return;
+                }
+                core.restore(args[1]);
+                break;
+
             default:
                 System.out.println("Unknown Command");
         }
@@ -107,7 +115,7 @@ class Repository {
             System.out.println("Could not hide directory");
         }
 
-        FileCreateContent(repoRoot.getAbsolutePath(), "HEAD", "refs/heads/main");
+        FileCreateContent(repoRoot.getAbsolutePath(), "HEAD", "main");
 
         try {
             mainFile.createNewFile();
@@ -183,34 +191,55 @@ class Repository {
         StringBuilder fileMap = new StringBuilder();
         fileMap.append("files:\n");
 
+        File workingDir = new File(System.getProperty("user.dir"));
+        files = workingDir.listFiles();
+
         if (files != null) {
             for (File file : files) {
 
-                // Ignore directories and .core folder
-                if (file.isFile() && !file.getName().equals(".core")) {
+                // skip unwanted files
+                if (!file.isFile()) {
+                    continue;
+                }
 
-                    try {
-                        // Read file content
-                        String content = new String(java.nio.file.Files.readAllBytes(file.toPath()));
+                String name = file.getName();
 
-                        // Generate hash for content
-                        String hash = HashUtil.getHex(HashUtil.getSHA(content));
+                // ignore .core folder, compiled files, hidden/system junk
+                if (name.equals(".core")
+                        || name.endsWith(".class")
+                        || name.startsWith(".")) {
+                    continue;
+                }
 
-                        // Store file content only if not already stored
-                        File obj = new File(objectDir, hash);
-                        if (!obj.exists()) {
-                            FileCreateContent(objectDir.getAbsolutePath(), hash, content);
-                        }
+                try {
+                    byte[] data = java.nio.file.Files.readAllBytes(file.toPath());
 
-                        // Add entry to snapshot
-                        fileMap.append(file.getName())
-                                .append(" ")
-                                .append(hash)
-                                .append("\n");
-
-                    } catch (Exception e) {
-                        System.err.println(e);
+                    // skip empty files (important fix)
+                    if (data.length == 0) {
+                        continue;
                     }
+
+                    String content = new String(data);
+
+                    String hash = HashUtil.getHex(HashUtil.getSHA(content));
+
+                    File obj = new File(objectDir, hash);
+
+                    // store only if not exists
+                    if (!obj.exists()) {
+                        try (FileWriter fw = new FileWriter(obj)) {
+                            fw.write(content);
+                        }
+                    }
+
+                    // add to commit snapshot
+                    fileMap.append(name)
+                            .append(" ")
+                            .append(hash)
+                            .append("\n");
+
+                } catch (Exception e) {
+                    System.err.println(e);
                 }
             }
         }
@@ -397,6 +426,101 @@ class Repository {
 
         try (FileWriter fw = new FileWriter(head.getAbsolutePath())) {
             fw.write(Branch_name);
+        } catch (IOException e) {
+            System.err.println(e);
+        }
+    }
+
+    public void restore(String commitID) {
+
+        // check repo exists
+        if (!repoRoot.exists()) {
+            System.out.println("No .core found");
+            return;
+        }
+
+        File commitFile = null;
+
+        // try exact match
+        File exact = new File(objectDir, commitID);
+        if (exact.exists()) {
+            commitFile = exact;
+        } else {
+            // try prefix match (short hash support)
+            File[] all = objectDir.listFiles();
+            if (all != null) {
+                for (File f : all) {
+                    if (f.getName().startsWith(commitID)) {
+                        commitFile = f;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (commitFile == null) {
+            System.out.println("Commit not found");
+            return;
+        }
+
+        // clean working directory (except .core)
+        File workingDir = new File(System.getProperty("user.dir"));
+        File[] files = workingDir.listFiles();
+
+        if (files != null) {
+            for (File f : files) {
+                if (f.isFile() && !f.getName().equals(".core")) {
+                    f.delete();
+                }
+            }
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(commitFile))) {
+
+            String line;
+            boolean fileSection = false;
+
+            while ((line = reader.readLine()) != null) {
+
+                // start reading file mappings
+                if (line.equals("files:")) {
+                    fileSection = true;
+                    continue;
+                }
+
+                if (!fileSection) {
+                    continue;
+                }
+
+                // format: filename hash
+                String[] parts = line.split(" ");
+                if (parts.length != 2) {
+                    continue;
+                }
+
+                String fileName = parts[0];
+                String hash = parts[1];
+
+                File objFile = new File(objectDir, hash);
+
+                if (!objFile.exists()) {
+                    System.out.println("Missing object: " + hash);
+                    continue;
+                }
+
+                // read stored content
+                String content = new String(java.nio.file.Files.readAllBytes(objFile.toPath()));
+
+                // recreate file
+                File outFile = new File(workingDir, fileName);
+
+                try (FileWriter fw = new FileWriter(outFile)) {
+                    fw.write(content);
+                }
+            }
+
+            System.out.println("Restored to commit " + commitFile.getName().substring(0, 6));
+
         } catch (IOException e) {
             System.err.println(e);
         }
