@@ -1,18 +1,21 @@
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.DosFileAttributeView;
 import java.security.NoSuchAlgorithmException;
-
 // Handles all repository operations
 class Repository {
 
     // Core repository structure
-    private File repoRoot;     // .core directory
-    private File objectDir;    // stores objects (commits + file contents)
-    private File refdirec;     // stores branch pointers
-    private File mainFile;     // default branch file
+    final private File repoRoot;     // .core directory
+    final private File objectDir;    // stores objects (commits + file contents)
+    final private File refdirec;     // stores branch pointers
+    final private File mainFile;     // default branch file
 
     // Initialize file paths
     Repository() {
@@ -25,23 +28,36 @@ class Repository {
     // Initializes repository structure
     void init() {
         if (repoRoot.exists()) {
-            System.out.println(".core Already exists");
-        } else {
-            repoRoot.mkdirs();
-            objectDir.mkdirs();
-            refdirec.mkdirs();
-
-            // HEAD points to active branch
-            FileCreateContent(repoRoot.getAbsolutePath(), "HEAD", "main");
-
-            try {
-                mainFile.createNewFile(); // create main branch
-            } catch (IOException e) {
-                System.out.println(e);
-            }
-
-            System.out.println("\nInitialized empty Git repository in " + repoRoot.getAbsolutePath() + "\n");
+            System.out.println(".core already exists");
+            return;
         }
+
+        repoRoot.mkdirs();
+        objectDir.mkdirs();
+        refdirec.mkdirs();
+
+        try {
+            Path path = repoRoot.toPath();
+            DosFileAttributeView view
+                    = Files.getFileAttributeView(path, DosFileAttributeView.class);
+
+            if (view != null) {
+                view.setHidden(true);
+            }
+        } catch (IOException e) {
+            System.out.println("Could not hide directory");
+        }
+
+        FileCreateContent(repoRoot.getAbsolutePath(), "HEAD", "refs/heads/main");
+
+        try {
+            mainFile.createNewFile();
+        } catch (IOException e) {
+            System.out.println(e);
+        }
+
+        System.out.println("\nInitialized empty repository in "
+                + repoRoot.getAbsolutePath() + "\n");
     }
 
     // Utility to create a file with content
@@ -129,9 +145,9 @@ class Repository {
 
                         // Add entry to snapshot
                         fileMap.append(file.getName())
-                               .append(" ")
-                               .append(hash)
-                               .append("\n");
+                                .append(" ")
+                                .append(hash)
+                                .append("\n");
 
                     } catch (Exception e) {
                         System.err.println(e);
@@ -141,12 +157,12 @@ class Repository {
         }
 
         // Build commit content (metadata + snapshot)
-        String CommitContent =
-                "parent:" + parentid +
-                "\nauthor:Utkarsh" +
-                "\ndate:" + currenttime +
-                "\nmessage:" + Message +
-                "\n" + fileMap.toString();
+        String CommitContent
+                = "parent:" + parentid
+                + "\nauthor:Utkarsh"
+                + "\ndate:" + currenttime
+                + "\nmessage:" + Message
+                + "\n" + fileMap.toString();
 
         // Generate commit ID from content
         String CommitID = null;
@@ -178,7 +194,9 @@ class Repository {
     // Displays commit history
     void log() {
 
-        if (!repoRoot.exists()) return;
+        if (!repoRoot.exists()) {
+            return;
+        }
 
         File headFile = new File(repoRoot, "HEAD");
 
