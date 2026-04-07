@@ -9,6 +9,65 @@ import java.nio.file.Path;
 import java.nio.file.attribute.DosFileAttributeView;
 import java.security.NoSuchAlgorithmException;
 // Handles all repository operations
+// CLI entry point
+
+public class core {
+
+    public static void main(String[] args) {
+
+        Repository core = new Repository();
+
+        // No command provided
+        if (args.length == 0) {
+            System.out.println("No Command yet");
+            return;
+        }
+
+        String command = args[0];
+
+        // Command parser
+        switch (command) {
+
+            case "init":
+                core.init();
+                break;
+
+            case "commit":
+                if (args.length < 2) {
+                    System.out.println("Commit message required");
+                    return;
+                }
+                core.commit(args[1]);
+                break;
+
+            case "branch":
+                core.branch(args[1]);
+                break;
+
+            case "log":
+                core.log();
+                break;
+
+            case "checkout":
+                core.checkout(args[1]);
+                break;
+
+            case "help":
+                System.out.println("Usable Commands:");
+                System.out.println("""
+                                        init : initializes repository
+                                        commit : Create new Commit
+                                        log : show commit history
+                                        branch : create new branch
+                                        checkout : Switch Branch""");
+                break;
+
+            default:
+                System.out.println("Unknown Command");
+        }
+    }
+}
+
 class Repository {
 
     // Core repository structure
@@ -340,64 +399,6 @@ class Repository {
             fw.write(Branch_name);
         } catch (IOException e) {
             System.err.println(e);
-        }
-    }
-}
-
-// CLI entry point
-public class core {
-
-    public static void main(String[] args) {
-
-        Repository core = new Repository();
-
-        // No command provided
-        if (args.length == 0) {
-            System.out.println("No Command yet");
-            return;
-        }
-
-        String command = args[0];
-
-        // Command parser
-        switch (command) {
-
-            case "init":
-                core.init();
-                break;
-
-            case "commit":
-                if (args.length < 2) {
-                    System.out.println("Commit message required");
-                    return;
-                }
-                core.commit(args[1]);
-                break;
-
-            case "branch":
-                core.branch(args[1]);
-                break;
-
-            case "log":
-                core.log();
-                break;
-
-            case "checkout":
-                core.checkout(args[1]);
-                break;
-
-            case "help":
-                System.out.println("Usable Commands:");
-                System.out.println("""
-                                init : initializes repository
-                                commit : Create new Commit
-                                log : show commit history
-                                branch : create new branch
-                                checkout : Switch Branch""");
-                break;
-
-            default:
-                System.out.println("Unknown Command");
         }
     }
 }
