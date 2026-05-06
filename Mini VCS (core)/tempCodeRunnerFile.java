@@ -7,14 +7,14 @@ class Repository {
 
     private File Reporoot;
     private File Objectdirec;
-    private File refdirec;
+    private File refDir;
     private File mainFile;
 
     Repository() {
         Reporoot = new File(System.getProperty("user.dir"), ".core");
         Objectdirec = new File(Reporoot, "objects");
-        refdirec = new File(Reporoot, "refs");
-        mainFile = new File(refdirec, "main");
+        refDir = new File(Reporoot, "refs");
+        mainFile = new File(refDir, "main");
     }
 
     void init() {
@@ -23,9 +23,9 @@ class Repository {
         } else {
             Reporoot.mkdirs();
             Objectdirec.mkdirs();
-            refdirec.mkdirs();
+            refDir.mkdirs();
 
-            FileCreateContent(Reporoot.getAbsolutePath(), "HEAD", "main");
+            createFileContent(Reporoot.getAbsolutePath(), "HEAD", "main");
             try {
                 mainFile.createNewFile();
             } catch (IOException e) {
@@ -48,7 +48,7 @@ class Repository {
         }
     }
 
-    void FileCreateContent(String FP, String FN, String Content) {
+    void createFileContent(String FP, String FN, String Content) {
         File head = new File(FP, FN);
         try (FileWriter fw = new FileWriter(head)) {
             fw.write(Content);
@@ -58,7 +58,7 @@ class Repository {
 
     }
 
-    public void commit(String Message) {
+    public void commit(String message) {
         if (!Reporoot.exists()) {
             System.out.println("No .core found");
             return;
