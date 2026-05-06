@@ -40,26 +40,24 @@ public class core {
                 core.commit(args[1]);
                 break;
 
-            case "branch":
-                core.branch(args[1]);
+            case "status":
+                core.status();
                 break;
 
             case "log":
                 core.log();
                 break;
 
-            case "checkout":
-                core.checkout(args[1]);
+            case "branch":
+                core.branch(args[1]);
                 break;
 
-            case "help":
-                System.out.println("Usable Commands:");
-                System.out.println("""
-                                        init : initializes repository
-                                        commit : Create new Commit
-                                        log : show commit history
-                                        branch : create new branch
-                                        checkout : Switch Branch""");
+            case "branches":
+                core.branches();
+                break;
+
+            case "checkout":
+                core.checkout(args[1]);
                 break;
 
             case "restore":
@@ -70,8 +68,97 @@ public class core {
                 core.restore(args[1]);
                 break;
 
+            case "help":
+
+                System.out.println("""
+=================================================
+            CORE - MINI VERSION CONTROL
+=================================================
+
+>> INIT
+
+Description:
+    Initialize a new repository in current directory
+
+Syntax:
+    core init
+
+
+>> COMMIT
+
+Description:
+    Create a new commit snapshot
+
+Syntax:
+    core commit "<message>"
+
+>> STATUS
+
+Description:
+    Show repository status
+
+Syntax:
+    core status
+
+>> LOG
+
+Description:
+    Display commit history
+
+Syntax:
+    core log
+
+
+>> BRANCH
+
+Description:
+    Create a new branch
+
+Syntax:
+    core branch <branch-name>
+
+
+>> BRANCHES
+
+Description:
+    List all available branches
+
+Syntax:
+    core branches
+
+
+>> CHECKOUT
+
+Description:
+    Switch active branch
+
+Syntax:
+    core checkout <branch-name>
+
+
+>> RESTORE
+
+Description:
+    Restore files from a specific commit
+
+Syntax:
+    core restore <commit-id>
+
+
+>> HELP
+
+Description:
+    Show help menu
+
+Syntax:
+    core help
+
+=================================================
+""");
+
+                break;
             default:
-                System.out.println("Unknown Command");
+                System.out.println("Unknown Command.try-> core help");
         }
     }
 }
@@ -81,15 +168,15 @@ class Repository {
     // Core repository structure
     final private File repoRoot;     // .core directory
     final private File objectDir;    // stores objects (commits + file contents)
-    final private File refdirec;     // stores branch pointers
+    final private File refDir;     // stores branch pointers
     final private File mainFile;     // default branch file
 
     // Initialize file paths
     Repository() {
         repoRoot = new File(System.getProperty("user.dir"), ".core");
         objectDir = new File(repoRoot, "objects");
-        refdirec = new File(repoRoot, "refs");
-        mainFile = new File(refdirec, "main");
+        refDir = new File(repoRoot, "refs");
+        mainFile = new File(refDir, "main");
     }
 
     // Initializes repository structure
@@ -101,7 +188,7 @@ class Repository {
 
         repoRoot.mkdirs();
         objectDir.mkdirs();
-        refdirec.mkdirs();
+        refDir.mkdirs();
 
         try {
             Path path = repoRoot.toPath();
@@ -115,7 +202,7 @@ class Repository {
             System.out.println("Could not hide directory");
         }
 
-        FileCreateContent(repoRoot.getAbsolutePath(), "HEAD", "main");
+        createFileContent(repoRoot.getAbsolutePath(), "HEAD", "main");
 
         try {
             mainFile.createNewFile();
@@ -127,18 +214,8 @@ class Repository {
                 + repoRoot.getAbsolutePath() + "\n");
     }
 
-    // Utility to create a file with content
-    void FileCreateContent(String FP, String FN, String Content) {
-        File file = new File(FP, FN);
-        try (FileWriter fw = new FileWriter(file)) {
-            fw.write(Content);
-        } catch (IOException e) {
-            System.err.println(e);
-        }
-    }
-
     // Creates a new commit
-    public void commit(String Message) {
+    public void commit(String message) {
 
         // Ensure repository exists
         if (!repoRoot.exists()) {
@@ -167,7 +244,7 @@ class Repository {
         }
 
         // Branch file stores latest commit hash
-        File branchFile = new File(refdirec, branch);
+        File branchFile = new File(refDir, branch);
 
         // Default parent is null (first commit)
         String parentid = "null";
@@ -184,11 +261,16 @@ class Repository {
         }
 
         // Timestamp for commit
-        long currenttime = System.currentTimeMillis();
+        String currenttime = java.time.LocalDateTime.now()
+                .toString();
 
         // -------- FILE TRACKING --------
         // Stores mapping of filename -> content hash
         StringBuilder fileMap = new StringBuilder();
+        if (fileMap.toString().equals("files:\n")) {
+            System.out.println("Nothing to commit");
+            return;
+        }
         fileMap.append("files:\n");
 
         File workingDir = new File(System.getProperty("user.dir"));
@@ -249,34 +331,89 @@ class Repository {
                 = "parent:" + parentid
                 + "\nauthor:Utkarsh"
                 + "\ndate:" + currenttime
-                + "\nmessage:" + Message
+                + "\nmessage:" + message
                 + "\n" + fileMap.toString();
 
         // Generate commit ID from content
-        String CommitID = null;
+        String commitId = null;
         try {
-            CommitID = HashUtil.getHex(HashUtil.getSHA(CommitContent));
+            commitId = HashUtil.getHex(HashUtil.getSHA(CommitContent));
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
             return;
         }
 
-        if (CommitID == null) {
+        if (commitId == null) {
             return;
         }
 
         // Store commit object
-        FileCreateContent(objectDir.getAbsolutePath(), CommitID, CommitContent);
+        createFileContent(objectDir.getAbsolutePath(), commitId, CommitContent);
 
         // Update branch pointer to new commit
         try (FileWriter fw = new FileWriter(branchFile.getAbsoluteFile())) {
-            fw.write(CommitID);
+            fw.write(commitId);
         } catch (IOException e) {
             System.err.println(e);
         }
 
         // Print commit summary
-        System.out.println("[" + branch + " " + CommitID.substring(0, 6) + "] " + Message);
+        System.out.println("[" + branch + " " + commitId.substring(0, 6) + "] " + message);
+    }
+
+    public void status() {
+
+        if (!repoRoot.exists()) {
+            System.out.println("No .core found");
+            return;
+        }
+
+        File head = new File(repoRoot, "HEAD");
+
+        String currentBranch = "";
+
+        try {
+            currentBranch = new String(
+                    java.nio.file.Files.readAllBytes(head.toPath())
+            ).trim();
+
+        } catch (IOException e) {
+            System.err.println(e);
+            return;
+        }
+
+        File branchFile = new File(refDir, currentBranch);
+
+        String latestCommit = "";
+
+        try {
+            latestCommit = new String(
+                    java.nio.file.Files.readAllBytes(branchFile.toPath())
+            ).trim();
+
+        } catch (IOException e) {
+            System.err.println(e);
+            return;
+        }
+
+        int objectCount = 0;
+
+        File[] objects = objectDir.listFiles();
+
+        if (objects != null) {
+            objectCount = objects.length;
+        }
+
+        System.out.println("On branch " + currentBranch);
+
+        if (!latestCommit.isEmpty()) {
+            System.out.println("Latest commit: "
+                    + latestCommit.substring(0, 6));
+        } else {
+            System.out.println("No commits yet");
+        }
+
+        System.out.println("Tracked objects: " + objectCount);
     }
 
     // Displays commit history
@@ -297,7 +434,7 @@ class Repository {
             return;
         }
 
-        File branchFile = new File(refdirec, branch);
+        File branchFile = new File(refDir, branch);
 
         // Get latest commit
         String currentCommit = null;
@@ -308,7 +445,7 @@ class Repository {
             return;
         }
 
-        System.out.println("\nLog Chain\n");
+        System.out.println("\nOn branch " + branch + "\n");
 
         // Traverse commits backwards using parent links
         while (currentCommit != null && !currentCommit.equals("null")) {
@@ -320,7 +457,7 @@ class Repository {
                 return;
             }
 
-            System.out.println("commit " + currentCommit);
+            System.out.println("commit " + currentCommit.substring(0, 6));
 
             String parentHash = "null";
 
@@ -331,7 +468,13 @@ class Repository {
 
                 while ((line = reader.readLine()) != null) {
 
-                    System.out.println(line);
+                    if (line.startsWith("author:")) {
+                        System.out.println("Author: " + line.substring(7));
+                    } else if (line.startsWith("date:")) {
+                        System.out.println("Date:   " + line.substring(5));
+                    } else if (line.startsWith("message:")) {
+                        System.out.println("\n    " + line.substring(8));
+                    }
 
                     // First line contains parent reference
                     if (firstLine) {
@@ -354,9 +497,9 @@ class Repository {
     }
 
     // Creates a new branch
-    public void branch(String Branch_name) {
+    public void branch(String branchName) {
 
-        if (Branch_name == null || Branch_name.trim().isEmpty()) {
+        if (branchName == null || branchName.trim().isEmpty()) {
             System.out.println("Invalid branch name");
             return;
         }
@@ -377,7 +520,7 @@ class Repository {
         }
 
         // Get latest commit of current branch
-        File currentBranchFile = new File(refdirec, currbranch);
+        File currentBranchFile = new File(refDir, currbranch);
         String currH = null;
 
         try {
@@ -392,19 +535,56 @@ class Repository {
         }
 
         // Create new branch pointer
-        File newBranch = new File(refdirec, Branch_name);
+        File newBranch = new File(refDir, branchName);
 
         if (!newBranch.exists()) {
-            FileCreateContent(refdirec.getAbsolutePath(), Branch_name, currH);
+            createFileContent(refDir.getAbsolutePath(), branchName, currH);
+            System.out.println("Branch '" + branchName + "' created");
         } else {
-            System.out.println(Branch_name + " already exists");
+            System.out.println(branchName + " already exists");
         }
     }
 
-    // Switches active branch
-    public void checkout(String Branch_name) {
+    public void branches() {
 
-        if (Branch_name == null || Branch_name.trim().isEmpty()) {
+        if (!repoRoot.exists()) {
+            System.out.println("No .core found");
+            return;
+        }
+
+        File head = new File(repoRoot, "HEAD");
+
+        String currentBranch = "";
+
+        try {
+            currentBranch = new String(
+                    java.nio.file.Files.readAllBytes(head.toPath())
+            ).trim();
+
+        } catch (IOException e) {
+            System.err.println(e);
+            return;
+        }
+
+        File[] branchFiles = refDir.listFiles();
+
+        if (branchFiles == null) {
+            return;
+        }
+
+        for (File branch : branchFiles) {
+
+            if (branch.getName().equals(currentBranch)) {
+                System.out.println("* " + branch.getName());
+            } else {
+                System.out.println("  " + branch.getName());
+            }
+        }
+    }
+
+    public void checkout(String branchName) {
+
+        if (branchName == null || branchName.trim().isEmpty()) {
             System.out.println("Invalid branch name");
             return;
         }
@@ -414,24 +594,45 @@ class Repository {
             return;
         }
 
-        File branch = new File(refdirec, Branch_name);
+        File branch = new File(refDir, branchName);
 
         if (!branch.exists()) {
-            System.out.println(branch + " does not exist");
+            System.out.println(branchName + " does not exist");
             return;
         }
 
-        // Update HEAD to new branch
+        // update HEAD to selected branch
         File head = new File(repoRoot, "HEAD");
 
-        try (FileWriter fw = new FileWriter(head.getAbsolutePath())) {
-            fw.write(Branch_name);
+        try (FileWriter fw = new FileWriter(head)) {
+            fw.write(branchName);
         } catch (IOException e) {
             System.err.println(e);
+            return;
         }
+
+        // read latest commit of target branch
+        String commitId = null;
+        try {
+            commitId = new String(java.nio.file.Files.readAllBytes(branch.toPath())).trim();
+        } catch (IOException e) {
+            System.err.println(e);
+            return;
+        }
+
+        // if branch has no commits yet, just switch HEAD
+        if (commitId.isEmpty()) {
+            System.out.println("Switched to branch '" + branchName + "'");
+            return;
+        }
+
+        // restore working directory to target branch state
+        restore(commitId);
+
+        System.out.println("Switched to branch '" + branchName + "'");
     }
 
-    public void restore(String commitID) {
+    public void restore(String commitId) {
 
         // check repo exists
         if (!repoRoot.exists()) {
@@ -442,7 +643,7 @@ class Repository {
         File commitFile = null;
 
         // try exact match
-        File exact = new File(objectDir, commitID);
+        File exact = new File(objectDir, commitId);
         if (exact.exists()) {
             commitFile = exact;
         } else {
@@ -450,7 +651,7 @@ class Repository {
             File[] all = objectDir.listFiles();
             if (all != null) {
                 for (File f : all) {
-                    if (f.getName().startsWith(commitID)) {
+                    if (f.getName().startsWith(commitId)) {
                         commitFile = f;
                         break;
                     }
@@ -519,8 +720,19 @@ class Repository {
                 }
             }
 
-            System.out.println("Restored to commit " + commitFile.getName().substring(0, 6));
+            System.out.println("HEAD restored to commit "
+                    + commitFile.getName().substring(0, 6));
 
+        } catch (IOException e) {
+            System.err.println(e);
+        }
+    }
+
+    // Utility to create a file with content
+    void createFileContent(String FP, String FN, String Content) {
+        File file = new File(FP, FN);
+        try (FileWriter fw = new FileWriter(file)) {
+            fw.write(Content);
         } catch (IOException e) {
             System.err.println(e);
         }
