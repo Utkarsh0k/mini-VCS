@@ -670,9 +670,9 @@ class Repository {
 
         if (files != null) {
             for (File f : files) {
-                if (f.isFile() && !f.getName().equals(".core")) {
-                    f.delete();
-                }
+                if (f.isFile()) {
+    f.delete();
+}
             }
         }
 
