@@ -1,13 +1,13 @@
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.security.messageDigest;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 public class HashUtil  {
 
     public static byte[] getSHA(String s) throws NoSuchAlgorithmException {
-        messageDigest md = messageDigest.getInstance("SHA-256");
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
         return md.digest(s.getBytes(StandardCharsets.UTF_8));
     }
 
