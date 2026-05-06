@@ -413,7 +413,7 @@ class Repository {
             System.out.println("No commits yet");
         }
 
-        System.out.println("Tracked objects: " + objectCount);
+        System.out.println("Stored objects: " + objectCount);
     }
 
     // Displays commit history
