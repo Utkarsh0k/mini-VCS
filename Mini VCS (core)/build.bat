@@ -1,28 +1,26 @@
 @echo off
 
 echo ============================
-echo Building Core...
+echo Installing Core...
 echo ============================
 
-:: Delete old class files
-del /Q *.class 2>nul
+:: Create install folder
+mkdir "C:\Core" 2>nul
 
-:: Compile Java source
-javac *.java
+:: Copy jar
+copy /Y core.jar "C:\Core\core.jar"
 
-if %errorlevel% neq 0 (
-    echo.
-    echo Build failed
-    pause
-    exit /b
-)
-
-:: Create executable jar
-jar cfe core.jar core *.class
+:: Create launcher
+(
+echo @echo off
+echo java -jar "C:\Core\core.jar" %%*
+) > "C:\Core\core.bat"
 
 echo.
-echo Build successful!
-echo core.jar generated
+echo Core files installed in:
+echo C:\Core
 echo.
-
+echo NEXT STEP:
+echo Add C:\Core to Windows PATH manually
+echo.
 pause
